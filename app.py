@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Form, Request
+from fastapi import FastAPI, HTTPException, Form, Request, Depends
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 import joblib
@@ -13,12 +13,21 @@ class InputData(BaseModel):
     y_axis: float
     z_axis: float
 
+def get_request(request: Request):
+    return request
+
 @app.get("/", response_class=HTMLResponse)
-def read_root(request: Request):
+def read_root(request: Request = Depends(get_request)):
     return templates.TemplateResponse("index.html", {"request": request})
 
 @app.post("/predict", response_class=HTMLResponse)
-def predict_activity(request: Request, timestamp: int = Form(...), x_axis: float = Form(...), y_axis: float = Form(...), z_axis: float = Form(...)):
+def predict_activity(
+    timestamp: int = Form(...),
+    x_axis: float = Form(...),
+    y_axis: float = Form(...),
+    z_axis: float = Form(...),
+    request: Request = Depends(get_request)
+):
     input_data = [[timestamp, x_axis, y_axis, z_axis]]
     
     try:
@@ -32,3 +41,4 @@ def predict_activity(request: Request, timestamp: int = Form(...), x_axis: float
         raise HTTPException(status_code=500, detail=f"Error predicting activity: {str(e)}")
 
     return templates.TemplateResponse("result.html", {"request": request, "activity": prediction[0]})
+
